@@ -97,7 +97,7 @@
 
   const categorySelect = document.createElement('select');
   categorySelect.id = 'mtCategory';
-  categorySelect.setAttribute('aria-label', '教材カテゴリ');
+  categorySelect.setAttribute('aria-label', '教材ジャンル');
   const currentCategory = normalizeCategory(categoryField.value);
   categoryField.replaceWith(categorySelect);
 
@@ -109,12 +109,12 @@
   const manageButton = document.createElement('button');
   manageButton.type = 'button';
   manageButton.className = 'ct-manage-btn';
-  manageButton.textContent = 'カテゴリ管理';
+  manageButton.textContent = 'ジャンル管理';
   categoryRow.appendChild(manageButton);
 
   const help = document.createElement('div');
   help.className = 'ct-help';
-  help.textContent = 'カテゴリは追加・削除でき、色も自由に変更できます。色は教材カードと学習記録のタグに反映されます。';
+  help.textContent = 'ジャンルは追加・削除でき、色も自由に変更できます。色は教材カードと学習記録のタグに反映されます。';
   categoryRow.insertAdjacentElement('afterend', help);
 
   const dialog = document.createElement('dialog');
@@ -122,16 +122,16 @@
   dialog.innerHTML = `
     <div class="ct-inner">
       <div class="ct-head">
-        <div><h3>教材カテゴリ管理</h3><div class="ct-sub">カテゴリ名と表示色を管理できます。</div></div>
+        <div><h3>教材ジャンル管理</h3><div class="ct-sub">ジャンル名と表示色を管理できます。</div></div>
         <button id="ctClose" class="ct-close" type="button" aria-label="閉じる">×</button>
       </div>
-      <label for="ctNewCategory">新しいカテゴリ</label>
+      <label for="ctNewCategory">新しいジャンル</label>
       <div class="ct-add-row">
         <input id="ctNewCategory" maxlength="50" placeholder="例：数学 / プログラミング / 資格" />
         <input id="ctNewColor" class="ct-color-input" type="color" value="#4f7cff" aria-label="新しいカテゴリの色" />
         <button id="ctAdd" type="button">追加</button>
       </div>
-      <div class="ct-help">色はいつでも変更できます。使用中のカテゴリを削除しても教材や学習記録は消えず、該当教材だけ「カテゴリなし」になります。</div>
+      <div class="ct-help">色はいつでも変更できます。使用中のジャンルを削除しても教材や学習記録は消えず、該当教材だけ「ジャンルなし」になります。</div>
       <div id="ctList" class="ct-list"></div>
     </div>`;
   document.body.appendChild(dialog);
@@ -159,7 +159,7 @@
     categorySelect.innerHTML = '';
     const none = document.createElement('option');
     none.value = '';
-    none.textContent = 'カテゴリなし';
+    none.textContent = 'ジャンルなし';
     categorySelect.appendChild(none);
     categories.forEach(category => {
       const option = document.createElement('option');
@@ -184,7 +184,7 @@
     categories = readCategories();
     const list = $('ctList');
     list.innerHTML = '';
-    if (!categories.length) { list.innerHTML = '<div class="ct-empty">まだカテゴリがありません。</div>'; return; }
+    if (!categories.length) { list.innerHTML = '<div class="ct-empty">まだジャンルがありません。</div>'; return; }
 
     categories.forEach(category => {
       const item = document.createElement('div');
@@ -226,8 +226,8 @@
   function addCategory(){
     const input = $('ctNewCategory');
     const name = normalizeCategory(input.value);
-    if (!name) { alert('カテゴリ名を入力してください'); return; }
-    if (categories.some(c => c.name.toLocaleLowerCase('ja-JP') === name.toLocaleLowerCase('ja-JP'))) { alert('同じカテゴリがすでにあります'); return; }
+    if (!name) { alert('ジャンル名を入力してください'); return; }
+    if (categories.some(c => c.name.toLocaleLowerCase('ja-JP') === name.toLocaleLowerCase('ja-JP'))) { alert('同じジャンルがすでにあります'); return; }
     categories.push({ name, color:normalizeColor($('ctNewColor').value, colorFromName(name)) });
     saveCategories();
     input.value='';
@@ -256,7 +256,8 @@
       const entry=entries[index],meta=card.querySelector('.mt-meta');
       if(!entry||!meta)return;
       const count=entry.system?records.filter(r=>!r.materialId||!materials.some(m=>m.id===r.materialId)).length:records.filter(r=>r.materialId===entry.id).length;
-      meta.textContent=[entry.category||'',`${count}件`].filter(Boolean).join(' ・ ');
+      const progress=entry.totalAmount>0?`${Number(entry.currentAmount||0).toLocaleString()}/${Number(entry.totalAmount).toLocaleString()}${entry.progressUnit||''}`:'';
+      meta.textContent=[entry.category||'',entry.materialType||'',progress,`${count}件`].filter(Boolean).join(' ・ ');
     });
   }
 
@@ -290,7 +291,7 @@
 
   function deleteCategory(name){
     const used=categoryUsage(name);
-    const message=used?`「${name}」を削除しますか？\nこのカテゴリを使っている${used}教材は「カテゴリなし」に変更されます。`:`「${name}」を削除しますか？`;
+    const message=used?`「${name}」を削除しますか？\nこのジャンルを使っている${used}教材は「ジャンルなし」に変更されます。`:`「${name}」を削除しますか？`;
     if(!confirm(message))return;
     categories=categories.filter(c=>c.name!==name);
     saveCategories();
