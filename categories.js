@@ -18,9 +18,7 @@
     } catch (e) { return []; }
   }
 
-  function saveMaterials(materials){
-    localStorage.setItem(MATERIALS_KEY, JSON.stringify(materials));
-  }
+  function saveMaterials(materials){ localStorage.setItem(MATERIALS_KEY, JSON.stringify(materials)); }
 
   function readRecords(){
     try {
@@ -29,9 +27,7 @@
     } catch (e) { return []; }
   }
 
-  function normalizeCategory(value){
-    return String(value || '').trim().replace(/\s+/g, ' ');
-  }
+  function normalizeCategory(value){ return String(value || '').trim().replace(/\s+/g, ' '); }
 
   function normalizeColor(value, fallback = '#4f7cff'){
     const color = String(value || '').trim();
@@ -75,10 +71,9 @@
       if (Array.isArray(parsed)) stored = parsed;
     } catch (e) {}
 
-    // 旧形式の文字列配列も、新形式 {name,color} に自動移行する。
-    // 既存教材で使われているカテゴリも選択肢へ自動追加する。
     const fromMaterials = readMaterials().map(m => ({ name: m?.category, color: colorFromName(m?.category) }));
-    const merged = uniqueCategories([...stored, ...fromMaterials]);
+    // 教材由来の初期値を先に置き、保存済みカテゴリを後に置くことでユーザーが選んだ色を優先する。
+    const merged = uniqueCategories([...fromMaterials, ...stored]);
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(merged));
     return merged;
   }
@@ -93,14 +88,13 @@
     .ct-dialog::backdrop{background:rgba(18,27,44,.48);backdrop-filter:blur(2px)}
     .ct-inner{padding:20px}.ct-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.ct-head h3{margin:0;font-size:19px}.ct-sub{font-size:12px;color:var(--muted);margin-top:4px}.ct-close{background:#f1f4f8;color:var(--text);width:40px;height:40px;padding:0;border-radius:50%;font-size:18px}
     .ct-add-row{display:grid;grid-template-columns:1fr 56px auto;gap:8px;align-items:center}.ct-add-row button{background:var(--primary);color:#fff;min-width:72px}.ct-color-input{width:48px;height:44px;padding:3px;border-radius:12px;cursor:pointer}.ct-color-input::-webkit-color-swatch-wrapper{padding:2px}.ct-color-input::-webkit-color-swatch{border:0;border-radius:8px}
-    .ct-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;max-height:320px;overflow:auto}.ct-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 10px}.ct-swatch{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}.ct-name{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ct-count{font-size:11px;color:var(--muted);white-space:nowrap}.ct-delete{background:#fff0f0;color:var(--danger);padding:7px 9px;font-size:12px}.ct-empty{color:var(--muted);font-size:13px;padding:12px 0;text-align:center}
+    .ct-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;max-height:320px;overflow:auto}.ct-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 10px}.ct-swatch{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}.ct-name{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ct-count{font-size:11px;color:var(--muted);white-space:nowrap}.ct-delete{background:#fff0f0;color:var(--danger);padding:7px 9px;font-size:12px}.ct-empty{color:var(--muted);font-size:13px;padding:12px 0;text-align:center}
     .ct-help{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}.ct-item .ct-color-input{width:38px;height:36px;border-radius:9px}
     #mtGrid .mt-item.ct-colored{border-top-width:4px}.mt-tag.ct-colored-tag{border:1px solid transparent}
-    @media(max-width:600px){.ct-category-row{grid-template-columns:1fr}.ct-manage-btn{width:100%}.ct-add-row{grid-template-columns:1fr 52px}.ct-add-row button{grid-column:1/-1;width:100%}.ct-item{grid-template-columns:auto minmax(0,1fr) auto}.ct-count{display:none}.ct-delete{grid-column:3}.ct-item .ct-color-input{grid-column:1}}
+    @media(max-width:600px){.ct-category-row{grid-template-columns:1fr}.ct-manage-btn{width:100%}.ct-add-row{grid-template-columns:1fr 52px}.ct-add-row button{grid-column:1/-1;width:100%}.ct-item{grid-template-columns:auto minmax(0,1fr) auto auto}.ct-count{display:none}.ct-delete{grid-column:4}.ct-item .ct-color-input{grid-column:3}}
   `;
   document.head.appendChild(style);
 
-  // materials.js が作った自由入力欄を、同じ id の select に置き換える。
   const categorySelect = document.createElement('select');
   categorySelect.id = 'mtCategory';
   categorySelect.setAttribute('aria-label', '教材カテゴリ');
@@ -149,23 +143,15 @@
 
   function hexToRgb(hex){
     const normalized = normalizeColor(hex).slice(1);
-    return {
-      r: parseInt(normalized.slice(0, 2), 16),
-      g: parseInt(normalized.slice(2, 4), 16),
-      b: parseInt(normalized.slice(4, 6), 16)
-    };
+    return { r:parseInt(normalized.slice(0,2),16), g:parseInt(normalized.slice(2,4),16), b:parseInt(normalized.slice(4,6),16) };
   }
 
-  function rgba(hex, alpha){
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
+  function rgba(hex, alpha){ const {r,g,b}=hexToRgb(hex); return `rgba(${r},${g},${b},${alpha})`; }
 
   function readableAccent(hex){
-    const { r, g, b } = hexToRgb(hex);
-    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    if (lum < 0.58) return hex;
-    return `rgb(${Math.round(r * .55)},${Math.round(g * .55)},${Math.round(b * .55)})`;
+    const {r,g,b}=hexToRgb(hex);
+    const lum=(0.299*r+0.587*g+0.114*b)/255;
+    return lum<0.58 ? hex : `rgb(${Math.round(r*.55)},${Math.round(g*.55)},${Math.round(b*.55)})`;
   }
 
   function renderCategorySelect(selected = categorySelect.value){
@@ -192,35 +178,26 @@
     categorySelect.style.paddingLeft = category ? '10px' : '';
   }
 
-  function categoryUsage(name){
-    return readMaterials().filter(m => normalizeCategory(m?.category) === name).length;
-  }
+  function categoryUsage(name){ return readMaterials().filter(m => normalizeCategory(m?.category) === name).length; }
 
   function renderCategoryList(){
     categories = readCategories();
     const list = $('ctList');
     list.innerHTML = '';
-    if (!categories.length) {
-      list.innerHTML = '<div class="ct-empty">まだカテゴリがありません。</div>';
-      return;
-    }
+    if (!categories.length) { list.innerHTML = '<div class="ct-empty">まだカテゴリがありません。</div>'; return; }
 
     categories.forEach(category => {
       const item = document.createElement('div');
       item.className = 'ct-item';
-
       const swatch = document.createElement('span');
       swatch.className = 'ct-swatch';
       swatch.style.backgroundColor = category.color;
-
       const label = document.createElement('div');
       label.className = 'ct-name';
       label.textContent = category.name;
-
       const count = document.createElement('div');
       count.className = 'ct-count';
       count.textContent = `${categoryUsage(category.name)}教材`;
-
       const color = document.createElement('input');
       color.type = 'color';
       color.className = 'ct-color-input';
@@ -231,14 +208,12 @@
         updateCategoryColor(category.name, color.value, false);
       });
       color.addEventListener('change', () => updateCategoryColor(category.name, color.value, true));
-
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'ct-delete';
       del.textContent = '削除';
       del.addEventListener('click', () => deleteCategory(category.name));
-
-      item.append(swatch, label, count, color, del);
+      item.append(swatch,label,count,color,del);
       list.appendChild(item);
     });
   }
@@ -252,97 +227,78 @@
     const input = $('ctNewCategory');
     const name = normalizeCategory(input.value);
     if (!name) { alert('カテゴリ名を入力してください'); return; }
-    const duplicate = categories.some(c => c.name.toLocaleLowerCase('ja-JP') === name.toLocaleLowerCase('ja-JP'));
-    if (duplicate) { alert('同じカテゴリがすでにあります'); return; }
-
-    categories.push({ name, color: normalizeColor($('ctNewColor').value, colorFromName(name)) });
+    if (categories.some(c => c.name.toLocaleLowerCase('ja-JP') === name.toLocaleLowerCase('ja-JP'))) { alert('同じカテゴリがすでにあります'); return; }
+    categories.push({ name, color:normalizeColor($('ctNewColor').value, colorFromName(name)) });
     saveCategories();
-    input.value = '';
-    $('ctNewColor').value = colorFromName(name);
+    input.value='';
+    $('ctNewColor').value=colorFromName(name);
     renderCategorySelect(name);
     renderCategoryList();
     applyCategoryColors();
     input.focus();
   }
 
-  function updateCategoryColor(name, color, persistRender){
-    const category = categoryByName(name);
-    if (!category) return;
-    category.color = normalizeColor(color, category.color);
+  function updateCategoryColor(name,color,persistRender){
+    const category=categoryByName(name);
+    if(!category)return;
+    category.color=normalizeColor(color,category.color);
     saveCategories();
     applyCategoryColors();
-    if (persistRender) {
-      renderCategorySelect(categorySelect.value);
-      renderCategoryList();
-    }
+    if(persistRender){ renderCategorySelect(categorySelect.value); renderCategoryList(); }
   }
 
   function refreshMaterialCardMeta(){
-    const cards = [...document.querySelectorAll('#mtGrid .mt-item')];
-    if (!cards.length) return;
-    const materials = readMaterials();
-    const records = readRecords();
-    const entries = [{ id:'', category:'未登録・既存記録', system:true }, ...materials];
-    cards.forEach((card, index) => {
-      const entry = entries[index];
-      const meta = card.querySelector('.mt-meta');
-      if (!entry || !meta) return;
-      const count = entry.system
-        ? records.filter(r => !r.materialId || !materials.some(m => m.id === r.materialId)).length
-        : records.filter(r => r.materialId === entry.id).length;
-      meta.textContent = [entry.category || '', `${count}件`].filter(Boolean).join(' ・ ');
+    const cards=[...document.querySelectorAll('#mtGrid .mt-item')];
+    if(!cards.length)return;
+    const materials=readMaterials(),records=readRecords();
+    const entries=[{id:'',category:'未登録・既存記録',system:true},...materials];
+    cards.forEach((card,index)=>{
+      const entry=entries[index],meta=card.querySelector('.mt-meta');
+      if(!entry||!meta)return;
+      const count=entry.system?records.filter(r=>!r.materialId||!materials.some(m=>m.id===r.materialId)).length:records.filter(r=>r.materialId===entry.id).length;
+      meta.textContent=[entry.category||'',`${count}件`].filter(Boolean).join(' ・ ');
     });
   }
 
   function applyCategoryColors(){
-    categories = readCategories();
-    const materials = readMaterials();
-    const materialMap = new Map(materials.map(m => [m.id, m]));
-
-    const cards = [...document.querySelectorAll('#mtGrid .mt-item')];
-    const entries = [{ id:'', category:'', system:true }, ...materials];
-    cards.forEach((card, index) => {
-      const entry = entries[index];
-      const category = entry && !entry.system ? categoryByName(entry.category) : null;
-      card.classList.toggle('ct-colored', Boolean(category));
-      card.style.borderTopColor = category ? category.color : '';
-      card.style.backgroundImage = category ? `linear-gradient(${rgba(category.color,.055)}, ${rgba(category.color,.055)})` : '';
+    categories=readCategories();
+    const materials=readMaterials();
+    const materialMap=new Map(materials.map(m=>[m.id,m]));
+    const cards=[...document.querySelectorAll('#mtGrid .mt-item')];
+    const entries=[{id:'',category:'',system:true},...materials];
+    cards.forEach((card,index)=>{
+      const entry=entries[index];
+      const category=entry&&!entry.system?categoryByName(entry.category):null;
+      card.classList.toggle('ct-colored',Boolean(category));
+      card.style.borderTopColor=category?category.color:'';
+      card.style.backgroundImage=category?`linear-gradient(${rgba(category.color,.055)}, ${rgba(category.color,.055)})`:'';
     });
 
-    const records = readRecords()
-      .sort((a,b) => `${b.date||''}${b.createdAt||''}`.localeCompare(`${a.date||''}${a.createdAt||''}`))
-      .slice(0,20);
-    const rows = [...document.querySelectorAll('#historyList .history-item')];
-    rows.forEach((row, index) => {
-      const tag = row.querySelector('.mt-tag');
-      if (!tag) return;
-      const material = materialMap.get(records[index]?.materialId);
-      const category = material ? categoryByName(material.category) : null;
-      tag.classList.toggle('ct-colored-tag', Boolean(category));
-      tag.style.backgroundColor = category ? rgba(category.color,.14) : '';
-      tag.style.color = category ? readableAccent(category.color) : '';
-      tag.style.borderColor = category ? rgba(category.color,.32) : '';
+    const records=readRecords().sort((a,b)=>`${b.date||''}${b.createdAt||''}`.localeCompare(`${a.date||''}${a.createdAt||''}`)).slice(0,20);
+    const rows=[...document.querySelectorAll('#historyList .history-item')];
+    rows.forEach((row,index)=>{
+      const tag=row.querySelector('.mt-tag');
+      if(!tag)return;
+      const material=materialMap.get(records[index]?.materialId);
+      const category=material?categoryByName(material.category):null;
+      tag.classList.toggle('ct-colored-tag',Boolean(category));
+      tag.style.backgroundColor=category?rgba(category.color,.14):'';
+      tag.style.color=category?readableAccent(category.color):'';
+      tag.style.borderColor=category?rgba(category.color,.32):'';
     });
   }
 
   function deleteCategory(name){
-    const used = categoryUsage(name);
-    const message = used
-      ? `「${name}」を削除しますか？\nこのカテゴリを使っている${used}教材は「カテゴリなし」に変更されます。`
-      : `「${name}」を削除しますか？`;
-    if (!confirm(message)) return;
-
-    categories = categories.filter(c => c.name !== name);
+    const used=categoryUsage(name);
+    const message=used?`「${name}」を削除しますか？\nこのカテゴリを使っている${used}教材は「カテゴリなし」に変更されます。`:`「${name}」を削除しますか？`;
+    if(!confirm(message))return;
+    categories=categories.filter(c=>c.name!==name);
     saveCategories();
-
-    if (used) {
-      const materials = readMaterials().map(m => normalizeCategory(m?.category) === name
-        ? { ...m, category:'', updatedAt:new Date().toISOString() }
-        : m);
+    if(used){
+      const materials=readMaterials().map(m=>normalizeCategory(m?.category)===name?{...m,category:'',updatedAt:new Date().toISOString()}:m);
       saveMaterials(materials);
     }
-
-    const selected = categorySelect.value === name ? '' : categorySelect.value;
+    const selected=categorySelect.value===name?'':categorySelect.value;
     renderCategorySelect(selected);
     renderCategoryList();
     refreshMaterialCardMeta();
@@ -351,48 +307,35 @@
 
   function openDialog(){
     renderCategoryList();
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
-    setTimeout(() => $('ctNewCategory')?.focus(), 0);
+    if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+    setTimeout(()=>$('ctNewCategory')?.focus(),0);
   }
+  function closeDialog(){ if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open'); }
 
-  function closeDialog(){
-    if (typeof dialog.close === 'function') dialog.close();
-    else dialog.removeAttribute('open');
-  }
-
-  // 教材編集ダイアログを開く直前に最新カテゴリを取り込む。
-  document.addEventListener('click', event => {
-    if (event.target.closest('.mt-add-btn,.mt-edit')) {
-      const selected = categorySelect.value;
+  document.addEventListener('click',event=>{
+    if(event.target.closest('.mt-add-btn,.mt-edit')){
+      const selected=categorySelect.value;
       renderCategorySelect(selected);
-      setTimeout(() => {
-        const value = normalizeCategory(categorySelect.value);
-        if (value && !categories.some(c => c.name === value)) renderCategorySelect('');
-      }, 0);
+      setTimeout(()=>{
+        const value=normalizeCategory(categorySelect.value);
+        if(value&&!categories.some(c=>c.name===value))renderCategorySelect('');
+      },0);
     }
-  }, true);
+  },true);
 
-  categorySelect.addEventListener('change', updateSelectAccent);
-  manageButton.addEventListener('click', openDialog);
-  $('ctClose').addEventListener('click', closeDialog);
-  $('ctAdd').addEventListener('click', addCategory);
-  $('ctNewCategory').addEventListener('keydown', event => {
-    if (event.key === 'Enter') { event.preventDefault(); addCategory(); }
-  });
-  dialog.addEventListener('click', event => { if (event.target === dialog) closeDialog(); });
+  categorySelect.addEventListener('change',updateSelectAccent);
+  manageButton.addEventListener('click',openDialog);
+  $('ctClose').addEventListener('click',closeDialog);
+  $('ctAdd').addEventListener('click',addCategory);
+  $('ctNewCategory').addEventListener('keydown',event=>{ if(event.key==='Enter'){event.preventDefault();addCategory();} });
+  dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog();});
 
-  // materials.js が教材カードや履歴タグを描き直した後もカテゴリ色を再適用する。
-  let colorFrame = 0;
-  const scheduleApply = () => {
-    cancelAnimationFrame(colorFrame);
-    colorFrame = requestAnimationFrame(applyCategoryColors);
-  };
-  const grid = $('mtGrid');
-  const history = $('historyList');
-  const observer = new MutationObserver(scheduleApply);
-  if (grid) observer.observe(grid, { childList:true, subtree:true });
-  if (history) observer.observe(history, { childList:true, subtree:true });
+  let colorFrame=0;
+  const scheduleApply=()=>{cancelAnimationFrame(colorFrame);colorFrame=requestAnimationFrame(applyCategoryColors);};
+  const grid=$('mtGrid'),history=$('historyList');
+  const observer=new MutationObserver(scheduleApply);
+  if(grid)observer.observe(grid,{childList:true,subtree:true});
+  if(history)observer.observe(history,{childList:true,subtree:true});
 
   renderCategorySelect(currentCategory);
   applyCategoryColors();
